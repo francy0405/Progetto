@@ -1,0 +1,15 @@
+# Ambiente virtuale (rigenerabile da requirements.txt — non si committa)
+.venv/
+venv/
+
+# Segreti / configurazione locale (password DB ecc. — MAI su Git)
+.env
+
+# Cache e file compilati di Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# File di sistema
+.DS_Store
+Thumbs.db
