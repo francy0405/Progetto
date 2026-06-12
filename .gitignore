@@ -1,1 +1,22 @@
-*
+# Ambiente virtuale (rigenerabile da requirements.txt — non si committa)
+.venv/
+venv/
+# Se il venv viene creato nella radice del progetto (es. python -m venv .)
+pyvenv.cfg
+/Scripts/
+/Lib/
+/Lib64/
+/Include/
+/share/
+
+# Segreti / configurazione locale (password DB ecc. — MAI su Git)
+.env
+
+# Cache e file compilati di Python
+_pycache_/
+*.py[cod]
+*.pyc
+
+# File di sistema
+.DS_Store
+Thumbs.db
