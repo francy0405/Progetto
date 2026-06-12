@@ -23,11 +23,11 @@ def ottieni_connessione_db() -> ConnessionePg:
         psycopg2.Error: se la connessione non puo' essere stabilita.
     """
     return psycopg2.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD", ""),
-        dbname=os.getenv("DB_DATABASE", "delivery_db"),
-        port=os.getenv("DB_PORT", "5432"),
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        dbname=os.getenv("DB_DATABASE"),
+        port=os.getenv("DB_PORT"),
         cursor_factory=RealDictCursor,
     )
 
