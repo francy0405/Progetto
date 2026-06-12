@@ -1,0 +1,39 @@
+# Orchestrazione: database PostgreSQL + app Flask
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    volumes:
+      # Persistenza dei dati del database tra un riavvio e l'altro
+      # (postgres:18+ vuole il mount su /var/lib/postgresql, non .../data)
+      - pgdata:/var/lib/postgresql
+      # Script eseguiti SOLO alla prima creazione del volume (carica il dump migrato)
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    depends_on:
+      db:
+        # L'app parte solo quando il database e' davvero pronto
+        condition: service_healthy
+    environment:
+      DB_HOST: db          # nome del servizio Postgres nella rete di compose
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+      HOST: 0.0.0.0
+      PORT: 5000
+    ports:
+      - "5000:5000"
+
+volumes:
+  pgdata:

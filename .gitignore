@@ -17,6 +17,9 @@ _pycache_/
 *.py[cod]
 *.pyc
 
+# Dati del volume PostgreSQL di Docker (se mai materializzati come cartella)
+pgdata/
+
 # File di sistema
 .DS_Store
 Thumbs.db
