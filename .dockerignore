@@ -1,0 +1,24 @@
+# Ambiente virtuale (l'immagine reinstalla da requirements.txt)
+.venv/
+venv/
+Scripts/
+Lib/
+Include/
+pyvenv.cfg
+
+# Segreti / configurazione locale (la passa docker-compose, non l'immagine)
+.env
+
+# Cache e file compilati
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Git e dati del DB
+.git/
+.gitignore
+init/
+
+# File di sistema
+.DS_Store
+Thumbs.db
