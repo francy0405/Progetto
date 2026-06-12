@@ -10,7 +10,7 @@ pyvenv.cfg
 .env
 
 # Cache e file compilati
-__pycache__/
+_pycache_/
 *.py[cod]
 *.pyc
 
