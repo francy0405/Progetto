@@ -2,14 +2,14 @@
 #  docker-compose.yml  —  IL "DIRETTORE D'ORCHESTRA"
 # =====================================================================
 #
-# Il Dockerfile costruisce UN solo contenitore (la nostra app).
-# Ma la nostra applicazione ha bisogno di DUE pezzi che lavorano insieme:
-#   1) il database PostgreSQL (dove salviamo corrieri e recensioni);
-#   2) l'app Flask (che risponde alle richieste).
-#
-# Questo file li accende ENTRAMBI con un solo comando ("docker compose up")
-# e li mette in comunicazione tra loro. E' come il direttore d'orchestra
-# che fa partire tutti gli strumenti al momento giusto.
+# La nostra applicazione, per funzionare, ha bisogno di due pezzi che
+# lavorano insieme: da una parte il database PostgreSQL, dove salviamo i
+# corrieri e le recensioni, e dall'altra l'app Flask, che riceve le
+# richieste e risponde. Il Dockerfile, da solo, sa costruire soltanto il
+# secondo; questo file invece li accende entrambi con un unico comando
+# ("docker compose up") e fa in modo che si parlino tra loro. E' un po' come
+# il direttore d'orchestra: non suona nessuno strumento, ma fa partire tutti
+# al momento giusto e li tiene in sincronia.
 
 services:
 
@@ -17,31 +17,30 @@ services:
   # SERVIZIO 1: il database PostgreSQL
   # -------------------------------------------------------------------
   db:
-    image: postgres:18   # usiamo l'immagine ufficiale di PostgreSQL, versione 18
+    image: postgres:18   # partiamo dall'immagine ufficiale di PostgreSQL, versione 18
     environment:
-      # Utente, password e nome del database. I valori NON sono scritti qui:
-      # arrivano dal file .env (la sintassi ${...} li legge da li'). Cosi'
-      # i dati sensibili restano fuori dal codice condiviso.
+      # Qui diciamo a PostgreSQL quale utente, password e database creare. I
+      # valori veri pero' non li scriviamo in chiaro: la sintassi ${...} li va
+      # a leggere dal file .env, cosi' le credenziali restano fuori dal codice
+      # che condividiamo.
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE}
     volumes:
-      # Un "volume" e' uno spazio su disco che sopravvive al contenitore:
-      # cosi' se spegniamo e riaccendiamo, i dati del database NON si perdono.
-      # (da PostgreSQL 18 in poi il mount va su /var/lib/postgresql)
+      # Un "volume" e' uno spazio su disco che vive separato dal contenitore e
+      # gli sopravvive: e' grazie a lui che, se spegniamo e riaccendiamo, i
+      # dati del database restano al loro posto invece di azzerarsi ogni volta.
+      # (Da PostgreSQL 18 in poi il punto da agganciare e' /var/lib/postgresql.)
       - pgdata:/var/lib/postgresql
-      # Questa cartella "init" viene eseguita UNA SOLA VOLTA, alla primissima
-      # creazione del database: serve a caricare il dump iniziale (le tabelle
-      # e i corrieri di esempio). ":ro" = sola lettura, non la modifichiamo.
-      - ./init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      # Un "controllo di salute": Docker chiede ripetutamente al database
-      # "sei pronto a ricevere connessioni?". Serve per non far partire l'app
-      # prima che il database sia davvero in piedi (vedi "depends_on" sotto).
+      # Prima di dare per pronto il database, Docker glielo chiede di continuo:
+      # "sei gia' in grado di accettare connessioni?". Serve a non far partire
+      # l'app troppo presto, quando il database non e' ancora in piedi (vedi
+      # "depends_on" qui sotto).
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
       interval: 5s   # ricontrolla ogni 5 secondi
       timeout: 5s    # aspetta al massimo 5 secondi per ogni tentativo
-      retries: 10    # dopo 10 tentativi falliti, si arrende
+      retries: 10    # dopo 10 tentativi a vuoto, si arrende
 
   # -------------------------------------------------------------------
   # SERVIZIO 2: la nostra app Flask
@@ -50,26 +49,31 @@ services:
     build: .   # costruiscila seguendo il Dockerfile che sta in questa cartella
     depends_on:
       db:
-        # L'app parte SOLO quando il database e' "service_healthy", cioe' ha
-        # superato il controllo di salute. Senza questa attesa, l'app potrebbe
-        # avviarsi troppo presto e fallire perche' il database non c'e' ancora.
+        # L'app aspetta: parte solo quando il database e' "service_healthy",
+        # cioe' ha superato il controllo di salute qui sopra. Senza questa
+        # attesa rischieremmo di avviarla nel vuoto, prima che il database
+        # esista davvero, e fallirebbe. Sara' poi l'app stessa, al primo
+        # avvio, a creare da sola le tabelle se non ci sono ancora.
         condition: service_healthy
     environment:
-      # Diciamo all'app come trovare il database. Nota la cosa importante:
-      # l'host NON e' un indirizzo IP ma "db", cioe' il nome del servizio qui
-      # sopra. Dentro la rete di Docker Compose i servizi si chiamano per nome.
+      # Diciamo all'app dove trovare il database. Il dettaglio da notare e'
+      # l'host: non e' un indirizzo IP, ma la parola "db", cioe' il nome del
+      # servizio qui sopra. Dentro la rete di Docker Compose, infatti, i
+      # servizi si raggiungono chiamandosi per nome.
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE: ${DB_DATABASE}
-      HOST: 0.0.0.0   # l'app ascolta da qualsiasi indirizzo (necessario in Docker)
+      HOST: 0.0.0.0   # l'app si mette in ascolto su qualsiasi indirizzo (necessario in Docker)
       PORT: 5000
     ports:
-      # Colleghiamo la porta 5000 del nostro PC alla porta 5000 del contenitore.
-      # Cosi' aprendo "localhost:5000" nel browser raggiungiamo l'app.
+      # Mettiamo in collegamento la porta 5000 del nostro PC con la porta 5000
+      # del contenitore: cosi' aprendo "localhost:5000" nel browser finiamo
+      # dritti sull'app.
       - "5000:5000"
 
-# Qui dichiariamo il volume usato sopra per la persistenza dei dati del database.
+# Qui dichiariamo il volume usato sopra, quello che da' persistenza ai dati
+# del database.
 volumes:
   pgdata:

@@ -3,23 +3,25 @@
  src/handlers/recensione_handler.py  —  LA LOGICA DELLE RECENSIONI
 =====================================================================
 
-Qui gestiamo le recensioni: aggiungerne una nuova e modificare il
-commento di una gia' esistente.
+Qui gestiamo le recensioni, e in pratica facciamo due cose: aggiungerne una
+nuova e modificare il commento di una gia' esistente.
 
-La parte interessante da raccontare in presentazione e' la VALIDAZIONE:
-prima di scrivere qualcosa nel database, controlliamo con attenzione che
-i dati abbiano senso (il voto e' davvero un numero da 1 a 5? il nome non
-e' vuoto? il commento non e' troppo lungo?). Meglio bloccare subito un
-dato sbagliato con un messaggio chiaro, che lasciarlo entrare nel database.
+La parte piu' interessante da raccontare in presentazione e' la
+VALIDAZIONE. Prima di scrivere qualunque cosa nel database, controlliamo con
+attenzione che i dati abbiano senso: il voto e' davvero un numero da 1 a 5?
+il nome non e' vuoto? il commento non e' troppo lungo? Il principio e'
+semplice: meglio bloccare subito un dato sbagliato con un messaggio chiaro,
+piuttosto che lasciarlo entrare e ritrovarcelo nel database.
 """
 
 from typing import Any, Dict, Optional
 
 from src.app import ottieni_connessione_db
 
-# Lunghezze massime consentite. Le mettiamo come "costanti" qui in alto cosi'
-# il numero compare in un posto solo: se domani volessimo cambiarlo, lo
-# cambiamo qui e basta. Devono combaciare con i limiti VARCHAR del database.
+# Le lunghezze massime consentite. Le teniamo come "costanti" qui in alto
+# cosi' che il numero compaia in un posto solo: se un domani volessimo
+# cambiarlo, lo cambiamo qui e basta. Devono combaciare con i limiti VARCHAR
+# definiti nel database.
 _MAX_NOME = 120
 _MAX_COMMENTO = 500
 
@@ -27,33 +29,33 @@ _MAX_COMMENTO = 500
 def _normalizza_commento(dati: Dict[str, Any]) -> Optional[str]:
     """Mette in ordine il campo "commento", che e' facoltativo.
 
-    Il problema che risolve: il commento puo' mancare, essere null, oppure
-    essere fatto solo di spazi vuoti. In tutti questi casi vogliamo salvare
-    un vero "niente" (NULL nel database), e NON la parola "None" scritta per
-    sbaglio come testo. Se invece il commento c'e', togliamo gli spazi inutili
-    ai bordi.
-
-    (Il nome inizia con "_" per convenzione: e' una funzione di aiuto interna,
-    pensata per essere usata solo qui dentro.)
+    Il problema che risolve e' questo: il commento puo' mancare del tutto,
+    arrivare come null, oppure essere fatto solo di spazi vuoti. In tutti
+    questi casi vogliamo salvare un vero "niente" (NULL nel database) e non,
+    per sbaglio, la parola "None" scritta come testo; se invece il commento
+    c'e' davvero, ci limitiamo a togliere gli spazi inutili ai bordi. Il nome
+    che inizia con "_" e' una convenzione: segnala che e' una funzione di
+    aiuto interna, pensata per essere usata solo qui dentro.
     """
-    # Letta passo per passo: prendi il commento (se manca, stringa vuota) ->
-    # se e' "falso"/vuoto usa "" -> togli gli spazi ai bordi -> se resta vuoto,
-    # diventa None.
+    # Letta da sinistra a destra: prendi il commento (se manca, stringa vuota),
+    # se e' "falso"/vuoto usa "", togli gli spazi ai bordi e, se a quel punto
+    # non resta niente, trasformalo in None.
     return str(dati.get("commento", "") or "").strip() or None
 
 
 def aggiungi_recensione(dati: Dict[str, Any]) -> Dict[str, Any]:
     """Crea una nuova recensione, ma solo dopo aver controllato tutto.
 
-    L'ordine e': prima validiamo ogni campo (e se qualcosa non va lo diciamo
-    subito), poi verifichiamo che il corriere esista, e solo alla fine
-    scriviamo davvero nel database.
+    L'ordine che seguiamo e' sempre lo stesso: prima validiamo ogni singolo
+    campo, e se qualcosa non va lo diciamo subito; poi verifichiamo che il
+    corriere esista; e solo alla fine, quando siamo sicuri, scriviamo davvero
+    nel database.
     """
     # --- Controllo dell'id del corriere ---
     id_corriere = dati["id_corriere"]
-    # Attenzione al trucco: in Python True/False sono considerati numeri (1/0),
-    # quindi escludiamo esplicitamente i booleani, altrimenti "True" passerebbe
-    # per un id valido.
+    # Qui c'e' un piccolo trucco a cui fare attenzione: in Python True e False
+    # vengono considerati numeri (1 e 0), quindi escludiamo esplicitamente i
+    # booleani, altrimenti un "True" passerebbe per un id valido.
     if isinstance(id_corriere, bool) or not isinstance(id_corriere, int):
         raise ValueError("'id_corriere' deve essere un numero intero.")
 
@@ -61,9 +63,9 @@ def aggiungi_recensione(dati: Dict[str, Any]) -> Dict[str, Any]:
     voto = dati["voto"]
     if isinstance(voto, bool) or not isinstance(voto, int):
         raise ValueError("'voto' deve essere un numero intero da 1 a 5.")
-    # Il voto deve stare nell'intervallo 1-5 (lo stesso limite e' anche nel
-    # database con il CHECK: qui lo controlliamo prima per dare un messaggio
-    # piu' gentile all'utente).
+    # Il voto deve stare nell'intervallo 1-5. Lo stesso limite e' anche nel
+    # database, garantito dal CHECK; qui pero' lo controlliamo prima, cosi' da
+    # poter dare all'utente un messaggio piu' gentile.
     if not 1 <= voto <= 5:
         raise ValueError("'voto' deve essere compreso tra 1 e 5.")
 
@@ -79,21 +81,21 @@ def aggiungi_recensione(dati: Dict[str, Any]) -> Dict[str, Any]:
     if commento is not None and len(commento) > _MAX_COMMENTO:
         raise ValueError(f"'commento' puo' avere al massimo {_MAX_COMMENTO} caratteri.")
 
-    # --- Tutto valido: ora parliamo col database ---
+    # --- Tutto valido: ora possiamo parlare col database ---
     connessione = ottieni_connessione_db()
     try:
         cursore = connessione.cursor()
 
-        # Verifichiamo che il corriere a cui vogliamo legare la recensione esista.
-        # Se non esiste, ha senso fermarci con un 404 invece di salvare una
-        # recensione "appesa al nulla".
+        # Verifichiamo che il corriere a cui vogliamo legare la recensione
+        # esista davvero: se non c'e', ha senso fermarci con un 404 invece di
+        # salvare una recensione "appesa al nulla".
         cursore.execute("SELECT id FROM corrieri WHERE id = %s;", (id_corriere,))
         if cursore.fetchone() is None:
             raise LookupError(f"Corriere con id={id_corriere} non trovato.")
 
-        # Inseriamo la recensione. "RETURNING *" e' comodo: chiede al database
-        # di restituirci subito la riga appena creata (id incluso), cosi' la
-        # possiamo rimandare al client senza fare una seconda query.
+        # Inseriamo la recensione. Il "RETURNING *" e' molto comodo: chiede al
+        # database di restituirci subito la riga appena creata, id compreso,
+        # cosi' possiamo rimandarla al client senza dover fare una seconda query.
         cursore.execute(
             "INSERT INTO recensioni (id_corriere, nome_cliente, voto, commento) "
             "VALUES (%s, %s, %s, %s) RETURNING *;",
@@ -109,11 +111,12 @@ def aggiungi_recensione(dati: Dict[str, Any]) -> Dict[str, Any]:
 def aggiorna_commento(id_recensione: int, dati: Dict[str, Any]) -> Dict[str, Any]:
     """Modifica SOLO il commento di una recensione gia' esistente.
 
-    Qui non si tocca il voto ne' il cliente: si cambia unicamente il testo del
-    commento. Se si manda un commento vuoto o null, il commento viene azzerato
-    (torna a NULL), grazie alla funzione di normalizzazione vista sopra.
+    Qui non tocchiamo ne' il voto ne' il cliente: cambiamo unicamente il
+    testo del commento. E se ci arriva un commento vuoto o null, il commento
+    viene azzerato (torna a NULL) grazie alla funzione di normalizzazione che
+    abbiamo visto sopra.
     """
-    # Stesso controllo di lunghezza che facciamo in inserimento.
+    # Facciamo lo stesso controllo di lunghezza dell'inserimento.
     commento = _normalizza_commento(dati)
     if commento is not None and len(commento) > _MAX_COMMENTO:
         raise ValueError(f"'commento' puo' avere al massimo {_MAX_COMMENTO} caratteri.")
@@ -122,7 +125,7 @@ def aggiorna_commento(id_recensione: int, dati: Dict[str, Any]) -> Dict[str, Any
     try:
         cursore = connessione.cursor()
 
-        # Prima controlliamo che la recensione esista davvero.
+        # Prima di tutto controlliamo che la recensione esista davvero.
         cursore.execute("SELECT id FROM recensioni WHERE id = %s;", (id_recensione,))
         if cursore.fetchone() is None:
             raise LookupError(f"Recensione con id={id_recensione} non trovata.")

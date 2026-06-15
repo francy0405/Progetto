@@ -3,49 +3,52 @@
  main.py  —  IL PUNTO DI PARTENZA DEL PROGRAMMA
 =====================================================================
 
-Questo e' il file che si lancia per far partire tutto.
-Quando scriviamo "python main.py" nel terminale, e' da qui che parte
-l'applicazione. Il suo compito e' molto semplice: prima prepara
-l'ambiente (legge le impostazioni segrete), poi accende il server web.
-
-Pensa a questo file come all'interruttore generale della casa: non
-contiene la logica vera e propria, serve solo ad accendere tutto.
+Questo e' il file che si lancia per far partire tutto: quando scriviamo
+"python main.py" nel terminale, l'applicazione nasce da qui. Il suo
+compito, in fondo, e' molto semplice: prima prepara l'ambiente leggendo le
+impostazioni segrete, e subito dopo accende il server web. Possiamo
+immaginarlo come l'interruttore generale di casa, che non contiene nessun
+elettrodomestico ma serve a dare corrente a tutto il resto.
 """
 
-# "load_dotenv" legge il file ".env" e mette al suo interno tutte le
-# nostre impostazioni segrete (password del database, porta, ecc.).
-# Lo facciamo PER PRIMA COSA, prima ancora di importare il resto del
-# programma, perche' gli altri pezzi di codice hanno gia' bisogno di
-# quelle impostazioni nel momento in cui vengono caricati.
+# La primissima cosa che facciamo, ancora prima di importare il resto del
+# programma, e' leggere il file ".env" con load_dotenv. Cosi' tutte le nostre
+# impostazioni segrete - la password del database, la porta, e cosi' via -
+# finiscono nelle variabili d'ambiente. L'ordine non e' casuale: gli altri
+# pezzi di codice hanno gia' bisogno di quei valori nel momento stesso in cui
+# vengono caricati, quindi devono trovarli gia' pronti.
 from dotenv import load_dotenv
 load_dotenv()
 
 import os
 
-# Importiamo la "fabbrica" che costruisce l'applicazione Flask.
-# La logica di costruzione sta in un altro file (src/app.py): qui ci
-# limitiamo a usarla.
+# Importiamo la "fabbrica" che costruisce l'applicazione Flask. La logica di
+# costruzione vive in un altro file (src/app.py): qui ci limitiamo a usarla,
+# tenendo questo file il piu' snello possibile.
 from src.app import crea_app
 
-# Su quale porta deve rispondere il server.
-# Proviamo a leggerla dalle impostazioni; se non c'e', usiamo la 5000.
+# Su quale porta deve rispondere il server: proviamo a leggerla dalle
+# impostazioni e, se non la troviamo, ripieghiamo sulla 5000.
 PORTA = os.getenv("PORT", "5000")
 
-# Costruiamo concretamente l'applicazione: e' la nostra app Flask pronta.
+# Costruiamo concretamente l'applicazione: da qui in poi "app" e' la nostra
+# app Flask, pronta all'uso.
 app = crea_app()
 
 
-# Questa riga significa: "esegui il codice qui sotto SOLO se ho lanciato
-# direttamente questo file". Se invece il file venisse importato da un
-# altro (ad esempio in un server di produzione), questa parte resta spenta.
+# Quest'ultima riga vuol dire "esegui il blocco qui sotto solo se ho lanciato
+# direttamente questo file". Se invece main.py venisse importato da un altro
+# file - come succede su un vero server di produzione - questa parte
+# resterebbe spenta, lasciando l'avvio in mano al server.
 if __name__ == "__main__":
     app.run(
-        # "0.0.0.0" vuol dire "accetta richieste da qualsiasi indirizzo":
-        # serve soprattutto dentro Docker, per essere raggiungibili da fuori.
+        # "0.0.0.0" significa "accetta richieste da qualsiasi indirizzo": una
+        # cosa indispensabile dentro Docker, altrimenti l'app non sarebbe
+        # raggiungibile dall'esterno del contenitore.
         host=os.getenv("HOST", "0.0.0.0"),
         port=PORTA,
-        # "debug" attivo = se sbaglio qualcosa nel codice il server me lo
-        # mostra in chiaro e si riavvia da solo quando salvo. Comodo mentre
-        # sviluppiamo; in un sito vero andrebbe spento.
+        # Con "debug" attivo, se sbagliamo qualcosa nel codice il server ce lo
+        # mostra in chiaro e si riavvia da solo a ogni salvataggio: comodissimo
+        # mentre sviluppiamo, ma in un sito vero andrebbe spento.
         debug=os.getenv("DEBUG", "True") == "True",
     )
