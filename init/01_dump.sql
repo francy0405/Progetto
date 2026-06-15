@@ -1,3 +1,30 @@
+-- =====================================================================
+--  01_dump.sql  —  LO "STAMPO" INIZIALE DEL DATABASE
+-- =====================================================================
+--
+--  COS'E': questo file e' una "fotografia" del database, generata in
+--  automatico dallo strumento pg_dump di PostgreSQL. Contiene i comandi
+--  per ricostruire da zero la struttura (le tabelle) e per ricaricare i
+--  dati di esempio (gli 8 corrieri).
+--
+--  QUANDO VIENE USATO: Docker lo esegue UNA SOLA VOLTA, alla primissima
+--  creazione del database (e' nella cartella "init" collegata in
+--  docker-compose). In questo modo, appena acceso, il database e' gia'
+--  pronto con tabelle e dati, senza doverli inserire a mano.
+--
+--  COSA TROVIAMO DENTRO (le parti che contano per la presentazione):
+--    - la tabella "corrieri"   (chi fa le consegne)
+--    - la tabella "recensioni" (i voti dei clienti)
+--    - le "sequence", cioe' i contatori che generano gli id automatici
+--    - i vincoli: chiave primaria, controllo sul voto (1-5) e la chiave
+--      esterna che collega le recensioni ai corrieri (con cancellazione
+--      a cascata).
+--
+--  NOTA: e' un file generato dalla macchina, quindi i commenti tecnici
+--  "-- Name: ...; Type: ..." li scrive pg_dump da solo. I commenti
+--  discorsivi (come questo) li abbiamo aggiunti noi come appunti.
+-- =====================================================================
+
 --
 -- PostgreSQL database dump
 --
@@ -27,6 +54,8 @@ SET default_table_access_method = heap;
 -- Name: corrieri; Type: TABLE; Schema: public; Owner: -
 --
 
+-- APPUNTO: la tabella dei corrieri. Ogni riga e' un fattorino, con nome,
+-- tipo di veicolo e quante consegne ha fatto in totale (parte da 0).
 CREATE TABLE public.corrieri (
     id integer NOT NULL,
     nome character varying(120) NOT NULL,
@@ -59,6 +88,10 @@ ALTER SEQUENCE public.corrieri_id_seq OWNED BY public.corrieri.id;
 -- Name: recensioni; Type: TABLE; Schema: public; Owner: -
 --
 
+-- APPUNTO: la tabella delle recensioni. Ogni riga e' il voto di un cliente
+-- a un corriere. "id_corriere" dice a quale corriere si riferisce.
+-- Il CONSTRAINT "chk_voto" e' una regola che il database fa rispettare da
+-- solo: rifiuta qualsiasi voto che non sia compreso tra 1 e 5.
 CREATE TABLE public.recensioni (
     id integer NOT NULL,
     id_corriere integer NOT NULL,
@@ -161,6 +194,10 @@ ALTER TABLE ONLY public.recensioni
 -- Name: recensioni fk_recensioni_corriere; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
+-- APPUNTO: questo e' il collegamento (la "chiave esterna") tra le due tabelle.
+-- Dice: ogni recensione DEVE riferirsi a un corriere che esiste davvero.
+-- "ON DELETE CASCADE" = se cancello un corriere, spariscono in automatico
+-- anche tutte le sue recensioni (niente recensioni "orfane").
 ALTER TABLE ONLY public.recensioni
     ADD CONSTRAINT fk_recensioni_corriere FOREIGN KEY (id_corriere) REFERENCES public.corrieri(id) ON UPDATE CASCADE ON DELETE CASCADE;
 

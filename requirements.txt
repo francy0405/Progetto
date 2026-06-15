@@ -1,3 +1,7 @@
-Flask==3.1.1
-psycopg2-binary==2.9.12
-python-dotenv==1.1.0
+# Le librerie esterne che il progetto usa (con la versione esatta, dopo "==",
+# cosi' funziona sempre allo stesso modo su qualsiasi PC).
+# Si installano tutte in un colpo con: pip install -r requirements.txt
+
+Flask==3.1.1            # il framework web: gestisce le route e le richieste HTTP
+psycopg2-binary==2.9.12 # il "ponte" tra Python e il database PostgreSQL
+python-dotenv==1.1.0    # legge le impostazioni segrete dal file .env
